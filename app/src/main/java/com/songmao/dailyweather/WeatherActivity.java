@@ -1,33 +1,35 @@
 package com.songmao.dailyweather;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.view.GravityCompat;
+import android.support.annotation.NonNull;
+import android.support.design.widget.NavigationView;
+import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
-import android.view.LayoutInflater;
+import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import com.bumptech.glide.Glide;
-import com.songmao.dailyweather.gson.Forecast;
-import com.songmao.dailyweather.gson.Weather;
-import com.songmao.dailyweather.util.HttpUtil;
-import com.songmao.dailyweather.util.Utility;
+import com.songmao.dailyweather.Adapter.FragmentAdapter;
+import com.songmao.dailyweather.Adapter.ViewFragment;
+import com.songmao.dailyweather.db.CityCode;
+import com.songmao.dailyweather.service.AutoUpdateService;
 
-import java.io.IOException;
+import org.litepal.crud.DataSupport;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
+import java.util.ArrayList;
+import java.util.List;
+
+import me.relex.circleindicator.CircleIndicator;
 
 
 /**
@@ -36,218 +38,184 @@ import okhttp3.Response;
 
 public class WeatherActivity extends AppCompatActivity {
 
-    private ScrollView weatherView;
+    private static final String TAG = "WeatherActivity";
 
-    private TextView titleText;
+    private CircleIndicator indicator;
+    private DrawerLayout mDrawerLayout;
+    private NavigationView navigationView;
+    private ViewPager viewPager;
+    private FragmentAdapter adapter;
+    private List<ViewFragment> viewFragments = new ArrayList<>();
+    private boolean isAddCity = false;
 
-    private TextView updateTime;
+    private LocalBroadcastManager localManager;
+    private CityManagerBroadCastReceiver broadCastReceiver;
 
-    private TextView nowTemperature;
-
-    private TextView nowInfo;
-
-    private LinearLayout forecastView;
-
-    private TextView aqiText;
-
-    private TextView pm25Text;
-
-    private TextView comfortText;
-
-    private TextView carWashText;
-
-    private TextView sportText;
-
-    private ImageView bingPicImg;
-
-    public SwipeRefreshLayout refreshLayout;
-
-    public DrawerLayout mDrawerLayout;
-
-    private Button navButton;
-
-    private String newWeatherId;
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        boolean isRepeat = true;
+        if ( isAddCity ){
+            Log.d(TAG, "onRestart: "+getIntent().getBooleanExtra("result",false));
+            String  addWeatherId = getIntent().getStringExtra("weather_id");
+            List<CityCode> cityCides = DataSupport.findAll(CityCode.class);
+            if (cityCides.size() > 0){
+                for (int i = 0 ; i < cityCides.size() ; i ++){
+                    CityCode code = cityCides.get(i);
+                    if (code.getCityCode().equals(addWeatherId)){
+                        isRepeat = false;
+                        viewPager.setCurrentItem(i);
+                    }
+                }
+            }
+            if (isRepeat){
+                String  cityName = getIntent().getStringExtra("county_name");
+                showWeatherInfo(addWeatherId);
+                viewPager.setCurrentItem(cityCides.size());
+                CityCode cityCode = new CityCode();
+                cityCode.setCityCode(addWeatherId);
+                cityCode.setCityName(cityName);
+                cityCode.save();
+            }
+            isAddCity = false;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (Build.VERSION.SDK_INT >= 21){
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
+
         setContentView(R.layout.activity_weather);
-
-//        if (Build.VERSION.SDK_INT >= 21){
-//            View decorView = getWindow().getDecorView();
-//            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-//            getWindow().setStatusBarColor(Color.TRANSPARENT);
-//        }
-
-        bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
-        weatherView = (ScrollView) findViewById(R.id.weather_layout);
-        titleText = (TextView) findViewById(R.id.title_city);
-        updateTime = (TextView) findViewById(R.id.title_update_time);
-        forecastView = (LinearLayout) findViewById(R.id.forecast_layout);
-        nowTemperature = (TextView) findViewById(R.id.now_temperature);
-        nowInfo = (TextView) findViewById(R.id.now_weather_info);
-        aqiText = (TextView) findViewById(R.id.aqi_text);
-        pm25Text = (TextView) findViewById(R.id.pm25_text);
-        comfortText = (TextView) findViewById(R.id.comfort_text);
-        carWashText = (TextView) findViewById(R.id.car_wash_text);
-        sportText = (TextView) findViewById(R.id.sport_text);
-
-        /*
-        */
-
-        refreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
-        refreshLayout.setColorSchemeResources(R.color.colorPrimary);
-        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                requestWeatherData(newWeatherId);
-                loadImage();
-            }
-        });
-
-        navButton = (Button) findViewById(R.id.nav_button);
+        initBroadCast();
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        navButton.setOnClickListener(new View.OnClickListener() {
+        navigationView = (NavigationView) findViewById(R.id.nav_view);   //实例化 Navigation控件；
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
-            public void onClick(View v) {
-                mDrawerLayout.openDrawer(GravityCompat.START);
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                switch (item.getItemId()){
+                    case R.id.select_city:
+                         // 跳转到选择城市页面
+                        Intent intent1 = new Intent(WeatherActivity.this,ChooseFragment.class);
+                        startActivity(intent1);
+                        mDrawerLayout.closeDrawers();
+                        break;
+                    case R.id.city:
+                        Intent intent = new Intent(WeatherActivity.this,CityManagerActivity.class);
+                        startActivityForResult(intent,1);
+                        mDrawerLayout.closeDrawers();
+                }
+                return true;
             }
         });
+        viewPager = (ViewPager) findViewById(R.id.weather_pager);
+        adapter = new FragmentAdapter(getSupportFragmentManager(),viewFragments);
+        indicator = (CircleIndicator) findViewById(R.id.indicator);
+        viewPager.setAdapter(adapter);
+        indicator.setViewPager(viewPager);
+        adapter.registerDataSetObserver(indicator.getDataSetObserver());
 
-
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String weatherString = prefs.getString("weather",null);
-        String bingPicString = prefs.getString("bing_pic",null);
-        if (bingPicString != null){
-            Glide.with(this).load(bingPicString).into(bingPicImg);
-        }
-        else {
-            loadImage();
-        }
-       if (weatherString != null){
-            //有缓存时直接解析天气数据
-            Weather  weather = Utility.handleWeatherResponse(weatherString);
-            newWeatherId= weather.basic.weatherId;
-            showWeatherInfo(weather);
-       }else {
+        List<CityCode> cityCodes = DataSupport.findAll(CityCode.class);
+        if (cityCodes.size() > 0){
+            //有缓存时直接解析天气
+            Intent intent = new Intent(this, AutoUpdateService.class);
+            startService(intent);
+            for (CityCode code : cityCodes){
+                showWeatherInfo(code.getCityCode());
+            }
+        }else {
             //无缓存时去服务器查询数据
             Intent intent = getIntent();
             String weatherId = intent.getStringExtra("weather_id");
-            weatherView.setVisibility(View.INVISIBLE);
-            requestWeatherData(weatherId);
-       }
-
+            String  cityName = getIntent().getStringExtra("county_name");
+            showWeatherInfo(weatherId);
+            CityCode cityCode = new CityCode();
+            cityCode.setCityCode(weatherId);
+            cityCode.setCityName(cityName);
+            cityCode.save();
+        }
     }
 
-    /*
-    * 根据 weather_id 请求天气
-    */
-    public void requestWeatherData(String weatherId) {
-        String address = "https://free-api.heweather.com/v5/weather?city="+weatherId+"&key=21bdab34c00c4a90b946dda59235841f";
-        newWeatherId =weatherId;
-        HttpUtil.sendOkHttpRequest(address, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_SHORT).show();
-                        refreshLayout.setRefreshing(false);
-                    }
-                });
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                final String responseText = response.body().string();
-                final Weather weather = Utility.handleWeatherResponse(responseText);
-
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (weather != null && "ok".equals(weather.status)) {
-                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-                            editor.putString("weather", responseText);
-                            editor.apply();
-                            showWeatherInfo(weather);
-                            loadImage();
-                        }else {
-                            Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_SHORT).show();
-                        }
-                        refreshLayout.setRefreshing(false);
-                    }
-                });
-            }
-        });
-    }
 
     /*
     *  将天气信息显示在屏幕上
     */
-    private void showWeatherInfo(Weather weather) {
+    private void showWeatherInfo(String weatherId) {
+        ViewFragment viewFragment = new ViewFragment();
+        Bundle bundle = new Bundle();
+        bundle.putString("weather_id",weatherId);
+        viewFragment.setArguments(bundle);
+        viewFragments.add(viewFragment);
+        adapter.notifyDataSetChanged();
+    }
 
-        String cityName = weather.basic.cityName;
-        String update = weather.basic.update.updateTime.split(" ")[1];
-        String degree = weather.now.temperature +  "°C";
-        String nowInfotext = weather.now.more.info;
+    @Override
+    protected void onNewIntent(Intent intent) {
+        this.isAddCity = intent.getBooleanExtra("result",false);
+        super.onNewIntent(intent);
+        setIntent(intent);
+    }
 
-        titleText.setText(cityName);
-        updateTime.setText(update);
-        nowTemperature.setText(degree);
-        nowInfo.setText(nowInfotext);
-
-        forecastView.removeAllViews();
-        for (Forecast forecast : weather.forecastList) {
-            View view = LayoutInflater.from(this).inflate(R.layout.forecast_item, forecastView, false);
-            TextView dateText = (TextView) view.findViewById(R.id.forecast_date);
-            TextView infoText = (TextView) view.findViewById(R.id.forecast_info);
-            TextView maxText = (TextView) view.findViewById(R.id.forecast_tem_max);
-            TextView minText = (TextView) view.findViewById(R.id.forecast_tem_min);
-            dateText.setText(forecast.date);
-            infoText.setText(forecast.more.info);
-            maxText.setText(forecast.temperature.max);
-            minText.setText(forecast.temperature.min);
-            forecastView.addView(view);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode){
+            case 1:
+                if (resultCode == RESULT_OK){
+                    viewPager.setCurrentItem(data.getIntExtra("position",0));
+                }
+                break;
+            default:
         }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
 
-        if (weather.aqi!= null){
-            aqiText.setText(weather.aqi.city.aqi);
-            pm25Text.setText(weather.aqi.city.pm25);
-        }
-
-        String comfort = "舒适度："+weather.suggestion.comfort.info;
-        String carWash = "洗车指数："+weather.suggestion.carWash.info;
-        String sport = "运动建议：" +weather.suggestion.sport.info;
-
-        comfortText.setText(comfort);
-        carWashText.setText(carWash);
-        sportText.setText(sport);
-        weatherView.setVisibility(View.VISIBLE);
+    public DrawerLayout getDrawerLayout(){
+        return this.mDrawerLayout;
     }
 
 
-    private void loadImage(){
-        String requestBingPic = "http://guolin.tech/api/bing_pic";
-        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        localManager.unregisterReceiver(broadCastReceiver);
+    }
 
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                final String bingPic = response.body().string();
-                SharedPreferences.Editor edit = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-                edit.putString("bing_pic",bingPic);
-                edit.apply();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Glide.with(WeatherActivity.this).load(bingPic).into(bingPicImg);
-                        refreshLayout.setRefreshing(false);
+    private void initBroadCast(){
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("com.songmao.dailyweather.CITY_MANAGER");
+        broadCastReceiver = new CityManagerBroadCastReceiver();
+        localManager = LocalBroadcastManager.getInstance(this);
+        localManager.registerReceiver(broadCastReceiver,intentFilter);
+    }
+
+
+    private class CityManagerBroadCastReceiver extends BroadcastReceiver{
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive: ");
+            List<String> deleteCityIds = intent.getStringArrayListExtra("delete_city");
+            if (deleteCityIds.size() > 0 ){
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                for (String cityId : deleteCityIds){
+                    Log.d(TAG, "onActivityResult: "+deleteCityIds.size() );
+                    for (int i = 0 ; i < viewFragments.size() ; i ++){
+                        ViewFragment viewFragment = viewFragments.get(i);
+                        Bundle bundle = viewFragment.getArguments();
+                        if (bundle.getString("weather_id").equals(cityId)){
+                            viewFragments.remove(i);
+                            editor.remove(""+cityId);
+                            editor.commit();
+                            Log.d(TAG, "onActivityResult: fragment "+viewFragments.size() );
+                            break;
+                        }
                     }
-                });
+                }
+                adapter.notifyDataSetChanged();
             }
-        });
+        }
     }
 }

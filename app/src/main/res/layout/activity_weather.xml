@@ -1,52 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/colorPrimary">
+    android:layout_height="match_parent">
 
-    <ImageView
-        android:scaleType="centerCrop"
-        android:id="@+id/bing_pic_img"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
     <android.support.v4.widget.DrawerLayout
+        android:fitsSystemWindows="true"
         android:id="@+id/drawer_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-        <android.support.v4.widget.SwipeRefreshLayout
-            android:id="@+id/swipe_refresh"
+        <RelativeLayout
+            android:fitsSystemWindows="true"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
-            <ScrollView
-                android:id="@+id/weather_layout"
+            <android.support.v4.view.ViewPager
+                android:fitsSystemWindows="true"
+                android:id="@+id/weather_pager"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"/>
+            <me.relex.circleindicator.CircleIndicator
+                android:layout_margin="15dp"
+                android:layout_alignParentBottom="true"
+                android:id="@+id/indicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </RelativeLayout>
 
-                <LinearLayout
-                    android:fitsSystemWindows="true"
-                    android:orientation="vertical"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-                    <include layout="@layout/title"/>
-
-                    <include layout="@layout/now"/>
-
-                    <include layout="@layout/forecast"/>
-
-                    <include layout="@layout/aqi"/>
-
-                    <include layout="@layout/suggestion"/>
-
-                </LinearLayout>
-            </ScrollView>
-        </android.support.v4.widget.SwipeRefreshLayout>
-
-        <fragment
+        <android.support.design.widget.NavigationView
+            android:id="@+id/nav_view"
+            app:menu="@menu/nav_title"
             android:layout_gravity="start"
-            android:name="com.songmao.dailyweather.ChooseAreaFragment"
+            app:headerLayout="@layout/nav_header"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/fragment" />
+            android:layout_height="match_parent">
+        </android.support.design.widget.NavigationView>
     </android.support.v4.widget.DrawerLayout>
 </FrameLayout>
+
