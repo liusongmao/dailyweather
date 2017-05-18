@@ -10,9 +10,12 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -22,12 +25,15 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.songmao.dailyweather.R;
+import com.songmao.dailyweather.View.HourlyForecast;
 import com.songmao.dailyweather.WeatherActivity;
 import com.songmao.dailyweather.gson.Forecast;
+import com.songmao.dailyweather.gson.Hourly;
 import com.songmao.dailyweather.gson.Weather;
 import com.songmao.dailyweather.util.HttpUtil;
 import com.songmao.dailyweather.util.MyApplication;
 import com.songmao.dailyweather.util.Utility;
+import com.songmao.dailyweather.util.WeatherImageUtil;
 
 import java.io.IOException;
 
@@ -42,11 +48,14 @@ import okhttp3.Response;
 public class ViewFragment extends Fragment {
     private static final String TAG = "ViewFragment";
     private Weather weather;
-    private String bingPic;
     private Activity mActivity;
     private View mView;
     private String newWeatherId;
     private SwipeRefreshLayout swipeRefresh;
+    private Boolean isRefresh = false;
+    HourlyForecast hourlyForecast;
+
+    private WeatherImageUtil imageUtil;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -68,13 +77,12 @@ public class ViewFragment extends Fragment {
         Bundle bundle = getArguments();
         String weatherId = bundle.getString("weather_id",null);
         SharedPreferences prfs = PreferenceManager.getDefaultSharedPreferences(mActivity);
-        String keepBingPic = prfs.getString("bing_pic",null);
         String keepResponse = prfs.getString(""+weatherId,null);
-        if (keepBingPic != null ) {
-            bingPic = keepBingPic;
-        }else {
-            loadImage();
+        Log.d(TAG, "onCreateView: " + weatherId);
+        if (imageUtil == null){
+            imageUtil = new WeatherImageUtil();
         }
+
         if (keepResponse != null){
 //            Log.d(TAG, "onCreateView: "+keepResponse);
             weather = Utility.handleWeatherResponse(keepResponse);
@@ -118,6 +126,7 @@ public class ViewFragment extends Fragment {
                             editor.putString(""+weatherId,responseText);
                             editor.apply();
                             ViewFragment.this.weather = weather;
+                            isRefresh = true;
                             showWeatherInfo(mView);
                         }else {
                             Toast.makeText(mActivity,"获取天气信息失败",Toast.LENGTH_SHORT).show();
@@ -130,23 +139,6 @@ public class ViewFragment extends Fragment {
         });
     }
 
-    private void loadImage(){
-        String requestBingPic = "http://guolin.tech/api/bing_pic";
-        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                bingPic = response.body().string();
-                SharedPreferences.Editor edit = PreferenceManager.getDefaultSharedPreferences(mActivity).edit();
-                edit.putString("bing_pic",bingPic);
-                edit.apply();
-            }
-        });
-    }
     private void showWeatherInfo(View view){
         ImageView bingPicImg = (ImageView) view.findViewById(R.id.bing_pic_img);
         ScrollView weatherView = (ScrollView) view.findViewById(R.id.weather_layout);
@@ -173,11 +165,10 @@ public class ViewFragment extends Fragment {
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                loadImage();
                 requestWeatherData(newWeatherId);
             }
         });
-        Glide.with(getActivity()).load(bingPic).into(bingPicImg);
+ //       Glide.with(getActivity()).load(bingPic).into(bingPicImg);
         String cityName = weather.basic.cityName;
         String update = weather.basic.update.updateTime.split(" ")[1];
         String degree = weather.now.temperature + "°C";
@@ -200,6 +191,13 @@ public class ViewFragment extends Fragment {
             forecastView.addView(view1);
         }
 
+        if (hourlyForecast == null) {
+            hourlyForecast = (HourlyForecast) view.findViewById(R.id.hourly_forecast);
+            hourlyForecast.setHourlyData(weather.hourForecastList);
+        }else{
+            hourlyForecast.setHourlyData(weather.hourForecastList);
+        }
+
         if (weather.aqi != null) {
             aqiText.setText(weather.aqi.city.aqi);
             pm25Text.setText(weather.aqi.city.pm25);
@@ -211,6 +209,15 @@ public class ViewFragment extends Fragment {
         comfortText.setText(comfort);
         carWashText.setText(carWash);
         sportText.setText(sport);
+        Glide.with(getActivity()).load(imageUtil.setImageUrl(nowInfotext)).into(bingPicImg);
         weatherView.setVisibility(View.VISIBLE);
+        WeatherActivity weatherActivity = (WeatherActivity) getActivity();
+        MyRecyclerAdapter adapter = weatherActivity.setNowTmp(degree,cityName);
+        if (isRefresh){
+            adapter.notifyDataSetChanged();
+            isRefresh = false;
+        }
+//        adapter.notifyDataSetChanged();
     }
+
 }

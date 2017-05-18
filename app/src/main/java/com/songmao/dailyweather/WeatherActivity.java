@@ -15,14 +15,20 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 
 import com.songmao.dailyweather.Adapter.FragmentAdapter;
+import com.songmao.dailyweather.Adapter.HeaderTmpListener;
+import com.songmao.dailyweather.Adapter.MyRecyclerAdapter;
 import com.songmao.dailyweather.Adapter.ViewFragment;
+import com.songmao.dailyweather.View.MyDrawerLayout;
 import com.songmao.dailyweather.db.CityCode;
 import com.songmao.dailyweather.service.AutoUpdateService;
+import com.songmao.dailyweather.util.NowTmp;
 
 import org.litepal.crud.DataSupport;
 
@@ -41,12 +47,16 @@ public class WeatherActivity extends AppCompatActivity {
     private static final String TAG = "WeatherActivity";
 
     private CircleIndicator indicator;
-    private DrawerLayout mDrawerLayout;
+    private MyDrawerLayout mDrawerLayout;
     private NavigationView navigationView;
+    private RecyclerView recyclerView;
+    private View headerView;
     private ViewPager viewPager;
     private FragmentAdapter adapter;
+    private MyRecyclerAdapter recyclerAdapter;
     private List<ViewFragment> viewFragments = new ArrayList<>();
     private boolean isAddCity = false;
+    private List<NowTmp> nowTmps = new ArrayList<>();
 
     private LocalBroadcastManager localManager;
     private CityManagerBroadCastReceiver broadCastReceiver;
@@ -70,6 +80,9 @@ public class WeatherActivity extends AppCompatActivity {
             }
             if (isRepeat){
                 String  cityName = getIntent().getStringExtra("county_name");
+                NowTmp nowTmp = new NowTmp();
+                nowTmp.setCity(cityName);
+                nowTmps.add(nowTmp);
                 showWeatherInfo(addWeatherId);
                 viewPager.setCurrentItem(cityCides.size());
                 CityCode cityCode = new CityCode();
@@ -89,10 +102,9 @@ public class WeatherActivity extends AppCompatActivity {
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             getWindow().setStatusBarColor(Color.TRANSPARENT);
         }
-
         setContentView(R.layout.activity_weather);
         initBroadCast();
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerLayout = (MyDrawerLayout) findViewById(R.id.drawer_layout);
         navigationView = (NavigationView) findViewById(R.id.nav_view);   //实例化 Navigation控件；
         navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
@@ -112,12 +124,25 @@ public class WeatherActivity extends AppCompatActivity {
                 return true;
             }
         });
+        headerView =navigationView.getHeaderView(0);
+        recyclerView = (RecyclerView) headerView.findViewById(R.id.header_recycler);
+        LinearLayoutManager lManager = new LinearLayoutManager(this);
+        lManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        recyclerView.setLayoutManager(lManager);
+        recyclerAdapter = new MyRecyclerAdapter(new HeaderTmpListener() {
+            @Override
+            public List<NowTmp> headerTmp() {
+                return nowTmps;
+            }
+        });
+        recyclerView.setAdapter(recyclerAdapter);
         viewPager = (ViewPager) findViewById(R.id.weather_pager);
         adapter = new FragmentAdapter(getSupportFragmentManager(),viewFragments);
         indicator = (CircleIndicator) findViewById(R.id.indicator);
         viewPager.setAdapter(adapter);
+        viewPager.setOffscreenPageLimit(10);
         indicator.setViewPager(viewPager);
-        adapter.registerDataSetObserver(indicator.getDataSetObserver());
+        adapter.registerDataSetObserver( indicator.getDataSetObserver() );
 
         List<CityCode> cityCodes = DataSupport.findAll(CityCode.class);
         if (cityCodes.size() > 0){
@@ -125,13 +150,20 @@ public class WeatherActivity extends AppCompatActivity {
             Intent intent = new Intent(this, AutoUpdateService.class);
             startService(intent);
             for (CityCode code : cityCodes){
+                NowTmp nowTmp = new NowTmp();
+                nowTmp.setCity(code.getCityName());
+                nowTmps.add(nowTmp);
                 showWeatherInfo(code.getCityCode());
+
             }
         }else {
             //无缓存时去服务器查询数据
             Intent intent = getIntent();
             String weatherId = intent.getStringExtra("weather_id");
             String  cityName = getIntent().getStringExtra("county_name");
+            NowTmp nowTmp = new NowTmp();
+            nowTmp.setCity(cityName);
+            nowTmps.add(nowTmp);
             showWeatherInfo(weatherId);
             CityCode cityCode = new CityCode();
             cityCode.setCityCode(weatherId);
@@ -151,7 +183,24 @@ public class WeatherActivity extends AppCompatActivity {
         viewFragment.setArguments(bundle);
         viewFragments.add(viewFragment);
         adapter.notifyDataSetChanged();
+        recyclerAdapter.notifyDataSetChanged();
     }
+
+    public DrawerLayout getDrawerLayout(){
+        return this.mDrawerLayout;
+    }
+    public MyRecyclerAdapter setNowTmp(final String tmp, final String city){
+      //  Log.d(TAG, "setNowTmp: "+tmp);
+        for (int i = 0 ; i < nowTmps.size() ; i ++ ){
+            String mCity = nowTmps.get(i).getCity();
+            if (mCity.equals(city)){
+                nowTmps.get(i).setTmp(tmp);
+//                Log.d(TAG, "setNowTmp: "+nowTmps.get(i).getTmp());
+            }
+        }
+        return this.recyclerAdapter;
+    }
+
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -173,11 +222,6 @@ public class WeatherActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    public DrawerLayout getDrawerLayout(){
-        return this.mDrawerLayout;
-    }
-
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -197,7 +241,7 @@ public class WeatherActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "onReceive: ");
-            List<String> deleteCityIds = intent.getStringArrayListExtra("delete_city");
+            List<String> deleteCityIds = intent.getStringArrayListExtra("delete_city_id");
             if (deleteCityIds.size() > 0 ){
                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
                 for (String cityId : deleteCityIds){
@@ -215,7 +259,36 @@ public class WeatherActivity extends AppCompatActivity {
                     }
                 }
                 adapter.notifyDataSetChanged();
+                List<String> deNames = intent.getStringArrayListExtra("delete_city");
+                for (String name : deNames){
+                    for (int i = 0 ; i < nowTmps.size() ; i++){
+                        if (name.equals( nowTmps.get(i).getCity() ));
+                        nowTmps.remove(i);
+                        break;
+                    }
+                }
+                recyclerAdapter.notifyDataSetChanged();
             }
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+
+        /*
+        *
+        * 获得抽屉中RecyclerView的位置
+        * 处理滑动冲突
+        *
+        */
+
+        if (hasFocus){
+            int left = recyclerView.getLeft();
+            int top = recyclerView.getTop();
+            int right = recyclerView.getRight();
+            int bottom = recyclerView.getBottom();
+            mDrawerLayout.setRecyclerView(left,top,right,bottom);
         }
     }
 }

@@ -23,12 +23,5 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         }
-//        SharedPreferences prfs = PreferenceManager.getDefaultSharedPreferences(this);
-//        String weatherIds = prfs.getString("weather",null);
-//        if (weatherIds != null){
-//            Intent intent = new Intent(this,WeatherActivity.class);
-//            startActivity(intent);
-//            finish();
-//        }
     }
 }

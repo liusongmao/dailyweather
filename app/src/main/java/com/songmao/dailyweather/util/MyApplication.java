@@ -19,4 +19,15 @@ public class MyApplication extends Application {
     public static Context getContext(){
         return context;
     }
+
+
+    public static int dp2px(float dpValue){
+        float scale = context.getResources().getDisplayMetrics().density;
+        return (int) (dpValue * scale + 0.5f);
+    }
+
+    public static int sp2px(float spValue) {
+        final float fontScale = context.getResources().getDisplayMetrics().scaledDensity;
+        return (int) (spValue * fontScale + 0.5f);
+    }
 }

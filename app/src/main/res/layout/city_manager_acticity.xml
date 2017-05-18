@@ -12,14 +12,13 @@
         android:id="@+id/city_manager_toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"/>
-    <RelativeLayout
-        android:layout_margin="5dp"
+
+    <com.songmao.dailyweather.View.DragListView
+        android:layout_marginTop="13dp"
+        android:dividerHeight="10dp"
+        android:divider="@null"
+        android:id="@+id/city_manager_list"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <ListView
-            android:id="@+id/city_manager_list"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-        </ListView>
-    </RelativeLayout>
+        android:layout_height="match_parent"/>
+
 </LinearLayout>

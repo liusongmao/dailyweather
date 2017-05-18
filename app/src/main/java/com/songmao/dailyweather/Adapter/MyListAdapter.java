@@ -18,6 +18,7 @@ import org.litepal.crud.DataSupport;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -29,6 +30,7 @@ public class MyListAdapter extends BaseAdapter {
     private List<String> cityList= new ArrayList<>();
     private Boolean isEditState = false ;
     private int deleteCount ;
+    private ArrayList<String> deNames = new ArrayList<>();
     private ArrayList<String> alreadyDe = new ArrayList<>();
 
     public static int CHANGE_TAG = 0;
@@ -72,6 +74,7 @@ public class MyListAdapter extends BaseAdapter {
             @Override
             public void onClick(View v) {
                 String cityName = cityList.get(finalPosition);
+                deNames.add(cityName);
                 cityList.remove(finalPosition);
                 notifyDataSetChanged();
                 deleteKeepCity(cityName);
@@ -96,6 +99,9 @@ public class MyListAdapter extends BaseAdapter {
     public void setIsEditState(Boolean isEditState){
         this.isEditState = isEditState;
     }
+    public boolean getIsEditState(){
+        return this.isEditState;
+    }
 
     private void deleteKeepCity(String deleteCity){
         List<CityCode> cityCodes = DataSupport.where("cityName = ?",deleteCity).find(CityCode.class);
@@ -110,7 +116,13 @@ public class MyListAdapter extends BaseAdapter {
     public void changeData(){
         LocalBroadcastManager broadCastManager = LocalBroadcastManager.getInstance(MyApplication.getContext());
         Intent intent = new Intent("com.songmao.dailyweather.CITY_MANAGER");
-        intent.putStringArrayListExtra("delete_city",alreadyDe);
+        intent.putStringArrayListExtra("delete_city_id",alreadyDe);
+        intent.putStringArrayListExtra("delete_city",deNames);
         broadCastManager.sendBroadcast(intent);
+    }
+
+    public void swapData(int from, int to){
+        Collections.swap(cityList, from, to);
+        notifyDataSetChanged();
     }
 }

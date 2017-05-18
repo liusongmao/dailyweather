@@ -1,18 +1,19 @@
 package com.songmao.dailyweather;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
+
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import com.bumptech.glide.util.LogTime;
 import com.songmao.dailyweather.Adapter.MyListAdapter;
 import com.songmao.dailyweather.db.CityCode;
 
@@ -38,6 +39,11 @@ public class CityManagerActivity extends AppCompatActivity{
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        if (Build.VERSION.SDK_INT >= 21){
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.city_manager_acticity);
         Toolbar toolbar = (Toolbar) findViewById(R.id.city_manager_toolbar);

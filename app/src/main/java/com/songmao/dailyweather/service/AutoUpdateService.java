@@ -41,7 +41,6 @@ public class AutoUpdateService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d("Tag", "onStartCommand: ");
         updateWeather();
-        updateBingPic();
         AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
         int hour = 8 * 60 * 60 * 1000; //8小时的毫秒数；
         long triggerAtTime = SystemClock.elapsedRealtime() + hour;
@@ -80,23 +79,6 @@ public class AutoUpdateService extends Service {
         }
     }
 
-    private void updateBingPic(){
-        Log.d("Tag", "updateWeatherPic: ");
-        String bingPicUrl = "http://guolin.tech/api/bing_pic";
-        HttpUtil.sendOkHttpRequest(bingPicUrl, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String bingPicString = response.body().string();
-                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(AutoUpdateService.this).edit();
-                editor.putString("bing_pic",bingPicString);
-                editor.apply();
-            }
-        });
-    }
 }
 
 
