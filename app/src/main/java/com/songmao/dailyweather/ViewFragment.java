@@ -1,4 +1,4 @@
-package com.songmao.dailyweather.Adapter;
+package com.songmao.dailyweather;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -14,8 +14,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -24,14 +22,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
-import com.songmao.dailyweather.R;
+import com.songmao.dailyweather.Adapter.MyRecyclerAdapter;
 import com.songmao.dailyweather.View.HourlyForecast;
-import com.songmao.dailyweather.WeatherActivity;
 import com.songmao.dailyweather.gson.Forecast;
-import com.songmao.dailyweather.gson.Hourly;
 import com.songmao.dailyweather.gson.Weather;
 import com.songmao.dailyweather.util.HttpUtil;
-import com.songmao.dailyweather.util.MyApplication;
 import com.songmao.dailyweather.util.Utility;
 import com.songmao.dailyweather.util.WeatherImageUtil;
 
@@ -156,9 +151,9 @@ public class ViewFragment extends Fragment {
         navButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (getActivity() instanceof WeatherActivity) {
-                    WeatherActivity weatherActivity = (WeatherActivity) getActivity();
-                    weatherActivity.getDrawerLayout().openDrawer(GravityCompat.START);
+                if (getActivity() instanceof MainActivity) {
+                    MainActivity mainActivity = (MainActivity) getActivity();
+                    mainActivity.getDrawerLayout().openDrawer(GravityCompat.START);
                 }
             }
         });
@@ -191,13 +186,8 @@ public class ViewFragment extends Fragment {
             forecastView.addView(view1);
         }
 
-        if (hourlyForecast == null) {
-            hourlyForecast = (HourlyForecast) view.findViewById(R.id.hourly_forecast);
-            hourlyForecast.setHourlyData(weather.hourForecastList);
-        }else{
-            hourlyForecast.setHourlyData(weather.hourForecastList);
-        }
-
+        hourlyForecast = (HourlyForecast) view.findViewById(R.id.hourly_forecast);
+        hourlyForecast.setHourlyData(weather.hourForecastList);
         if (weather.aqi != null) {
             aqiText.setText(weather.aqi.city.aqi);
             pm25Text.setText(weather.aqi.city.pm25);
@@ -211,8 +201,8 @@ public class ViewFragment extends Fragment {
         sportText.setText(sport);
         Glide.with(getActivity()).load(imageUtil.setImageUrl(nowInfotext)).into(bingPicImg);
         weatherView.setVisibility(View.VISIBLE);
-        WeatherActivity weatherActivity = (WeatherActivity) getActivity();
-        MyRecyclerAdapter adapter = weatherActivity.setNowTmp(degree,cityName);
+        MainActivity mainActivity = (MainActivity) getActivity();
+        MyRecyclerAdapter adapter = mainActivity.setNowTmp(degree,cityName);
         if (isRefresh){
             adapter.notifyDataSetChanged();
             isRefresh = false;

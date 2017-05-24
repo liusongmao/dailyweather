@@ -46,7 +46,7 @@ public class ChooseAreaFragment extends Fragment{
     private TextView titleText;
     private ListView listView;
     private ArrayAdapter<String> adapter ;
-
+    private View currentView;
 
     private List<String> dataList = new ArrayList<>(); // adapter数据集合
 
@@ -65,12 +65,13 @@ public class ChooseAreaFragment extends Fragment{
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.choose_area,container,false);
+        View view = inflater.inflate(R.layout.add_city,container,false);
         titleText = (TextView) view.findViewById(R.id.title_text);
         backButton = (Button) view.findViewById(R.id.title_back);
         listView = (ListView) view.findViewById(R.id.list_view);
         adapter = new ArrayAdapter<>(getActivity(),android.R.layout.simple_list_item_1,dataList);   //书中getContext();
         listView.setAdapter(adapter);
+        currentView = view;
         return view;
     }
 
@@ -87,27 +88,14 @@ public class ChooseAreaFragment extends Fragment{
                     selectCity = cityList.get(position);
                     queryCounty();
                 }else if (currentLevel == LEVEL_COUNTY){
-//                    if (getActivity() instanceof MainActivity) {
-//                        String weatherId = countyList.get(position).getWeatherId();
-//                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
-//                        intent.putExtra("weather_id", weatherId);
-//                        startActivity(intent);
-//                        getActivity().finish();
-//                    }else /*if (getActivity()instanceof WeatherActivity)*/{
-//                        String weatherId = countyList.get(position).getWeatherId();
-//                        WeatherActivity activity = (WeatherActivity) getActivity();
-//                        activity.mDrawerLayout.closeDrawers();
-//                        activity.refreshLayout.setRefreshing(true);
-//                        activity.requestWeatherData(weatherId);
                         String weatherId = countyList.get(position).getWeatherId();
                         String countyName = countyList.get(position).getCountyName();
-                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                        Intent intent = new Intent(getActivity(), MainActivity.class);
                         intent.putExtra("result",true);
                         intent.putExtra("weather_id", weatherId);
                         intent.putExtra("county_name",countyName);
                         startActivity(intent);
                         getActivity().finish();
-//                    }
                 }
 
             }
@@ -234,6 +222,13 @@ public class ChooseAreaFragment extends Fragment{
     private void closeProgressDialog(){
         if (progressDialog != null){
             progressDialog.dismiss();
+        }
+    }
+    public View getCurrentView(){
+        if (currentView != null){
+            return  this.currentView;
+        }else {
+            return null;
         }
     }
 }

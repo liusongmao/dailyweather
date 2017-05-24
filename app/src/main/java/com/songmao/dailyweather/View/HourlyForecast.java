@@ -35,8 +35,6 @@ public class HourlyForecast extends View {
     private List<String> info ;
     private List<String> pop ;
 
-
-
     private Paint paint;
     private Path tmpPath ;
     private Path gonePath ;
@@ -47,7 +45,7 @@ public class HourlyForecast extends View {
     public HourlyForecast(Context context) {
         super(context);
         init();
-        setWillNotDraw(false);
+       // setWillNotDraw(false);
     }
 
     public HourlyForecast(Context context,List<Hourly> hourlyList){
@@ -63,7 +61,7 @@ public class HourlyForecast extends View {
     public HourlyForecast(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
-        setWillNotDraw(false);
+       // setWillNotDraw(false);
     }
 
     @Override
@@ -90,6 +88,8 @@ public class HourlyForecast extends View {
         canvas.drawText("降水率", textPaint.measureText("降水率") / 2 +10, textOffset * 9, textPaint);
         canvas.drawText("天气", textPaint.measureText("降水率") / 2 +10, textOffset * 8, textPaint);
         canvas.drawText("时间", textPaint.measureText("降水率") / 2 +10, textOffset * 7, textPaint);
+        tmpPath.reset();
+        gonePath.reset();
         if (tmp.size() != 0) {
             int offsetTmp = maxTmp(tmp) - minTmp(tmp);
             int count = tmp.size();
@@ -109,7 +109,6 @@ public class HourlyForecast extends View {
                     canvas.drawText(pop.get(j)+"%",x , textOffset * 9,textPaint);
 
                 }
-
                 tmpPath.lineTo((float) (w - xSpace * (i - 1 + 0.5) - xSpace*0.3),textOffset * 5 - ySpace * (tmp.get(0) - minTmp) );
                 paint.setPathEffect(new CornerPathEffect(300));
                 canvas.drawPath(tmpPath,paint);
@@ -152,15 +151,17 @@ public class HourlyForecast extends View {
 
         paint = new Paint();
         paint.setStrokeJoin(Paint.Join.ROUND);
+        paint.setAntiAlias(true);
         paint.setDither(true);
         paint.setColor(Color.WHITE);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(MyApplication.sp2px(2));
+        paint.setStrokeWidth(MyApplication.sp2px(1));
 
         textPaint = new Paint();
+        textPaint.setAntiAlias(true);
         textPaint.setSubpixelText(true);
         textPaint.setDither(true);
-        textPaint.setTextSize(MyApplication.sp2px(14));
+        textPaint.setTextSize(MyApplication.sp2px(13));
         textPaint.setColor(Color.WHITE);
         textPaint.setStyle(Paint.Style.FILL);
         textPaint.setTextAlign(Paint.Align.CENTER);
