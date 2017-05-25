@@ -19,9 +19,6 @@ import java.util.List;
 
 public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.ViewHolder> {
 
-    private static final String TAG = "MyRecyclerAdapter";
-    private View mView;
-    private List<NowTmp> Datas;
     private HeaderTmpListener listener;
 
 
@@ -40,7 +37,6 @@ public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.Vi
 
         public ViewHolder(View itemView) {
             super(itemView);
-            mView = itemView;
             headerTmp = (TextView) itemView.findViewById(R.id.header_tmp);
             headerName = (TextView) itemView.findViewById(R.id.header_name);
         }
@@ -49,7 +45,13 @@ public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.Vi
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycler_item,parent,false);
-        ViewHolder viewHolder = new ViewHolder(view);
+        final ViewHolder viewHolder = new ViewHolder(view);
+        viewHolder.headerName.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                listener.getViewPager().setCurrentItem(viewHolder.getAdapterPosition());
+            }
+        });
         return viewHolder;
     }
 
@@ -57,8 +59,7 @@ public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.Vi
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         NowTmp nowTmp = listener.headerTmp().get(position);
-        String tmp = nowTmp.getTmp();
-//        Log.d(TAG, "onBindViewHolder: "+tmp);
+        String tmp = nowTmp.getTmp();;
         String name = nowTmp.getCity();
         holder.headerTmp.setText(name);
         holder.headerName.setText(tmp);

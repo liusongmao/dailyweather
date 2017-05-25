@@ -140,6 +140,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public List<NowTmp> headerTmp() {
                 return nowTmps;
             }
+
+            @Override
+            public ViewPager getViewPager() {
+                if (viewPager != null){
+                    mDrawerLayout.closeDrawers();
+                    return viewPager;
+                }else {
+                    return null;
+                }
+            }
         });
         recyclerView.setAdapter(recyclerAdapter);
         viewPager = (ViewPager) findViewById(R.id.weather_pager);
@@ -225,6 +235,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Intent intent = new Intent(MainActivity.this,CityManagerActivity.class);
                 startActivityForResult(intent,1);
                 mDrawerLayout.closeDrawers();
+                break;
+            case R.id.quit:
+                finish();
+                break;
         }
         return true;
     }

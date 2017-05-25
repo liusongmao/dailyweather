@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@color/colorPrimary">
+    android:background="@drawable/default_background">
 
     <ImageView
         android:scaleType="centerCrop"
@@ -24,6 +24,14 @@
                 <include layout="@layout/title"/>
 
                 <include layout="@layout/now"/>
+
+                <TextView
+                    android:layout_marginLeft="10dp"
+                    android:textSize="16sp"
+                    android:text="24h预报"
+                    android:textColor="#fff"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
 
                 <com.songmao.dailyweather.View.HourlyForecast
                     android:id="@+id/hourly_forecast"
