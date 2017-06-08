@@ -1,1 +1,1 @@
-Daily Weather
+Daily Weather（好天气）
